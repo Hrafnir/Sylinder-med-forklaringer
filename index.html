@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sylinder Utforsker - Valgfri Formel</title>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <script>
+        MathJax = {
+          tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+          svg: { fontCache: 'global' },
+          options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
+          startup: { ready: () => { MathJax.startup.defaultReady(); } }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <style>
+         /* (Samme grunnleggende CSS som før) */
+         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px 40px; background-color: #f8f9fa; line-height: 1.6; color: #212529; }
+         .main-container { display: flex; flex-direction: column; width: 100%; max-width: 900px; gap: 30px; margin-top: 20px; }
+         .controls, .info, .results-container { background-color: #ffffff; padding: 25px 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07); border: 1px solid #e9ecef; }
+         .plot-section { display: flex; justify-content: center; align-items: center; min-height: 450px; margin-top: 20px; }
+         #plotDiv { width: 100%; max-width: 500px; height: 450px; }
+         .slider-container { margin-bottom: 20px; }
+         label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 1.05em; }
+         input[type="range"] { width: 100%; cursor: pointer; }
+         select#unit-selector { padding: 6px 10px; margin-left: 10px; border-radius: 5px; border: 1px solid #ced4da; font-size: 0.95em; }
+         .unit-label { font-weight: bold; margin-bottom: 15px; font-size: 1.1em; }
+         .value-display { font-weight: bold; font-size: 1.05em; background-color: #eef1f3; padding: 3px 8px; border-radius: 5px; display: inline-block; min-width: 40px; text-align: right; border: 1px solid #dee2e6; margin-left: 5px; }
+         #generate-button { display: block; width: 100%; padding: 12px 20px; font-size: 1.15em; font-weight: bold; color: #ffffff; background-color: #28a745; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease; margin-top: 25px; }
+         #generate-button:hover { background-color: #218838; }
+         .results-container { display: none; flex-direction: column; gap: 20px; }
+         .results-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+         .results-section p { font-size: 1.1em; margin: 8px 0; }
+         .results-section span { font-weight: bold; font-size: 1.15em; color: #007bff; }
+         .formula-section p { font-size: 1.1em; margin: 10px 0; /* Litt mindre margin */ overflow-wrap: break-word; line-height: 1.7; }
+         .formula-value { font-style: normal; color: #333; background-color: #f0f6fc; padding: 10px 12px; border-radius: 6px; display: block; margin-top: 15px; border: 1px solid #cce5ff; }
+         h1, h2, h3 { color: #343a40; margin-bottom: 0.8em; }
+         h1 { font-size: 2.2em; text-align: center; color: #2c3e50; margin-bottom: 1.2em;}
+         h2 { font-size: 1.6em; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 8px;}
+         h3 { font-size: 1.3em; color: #495057;}
+         hr { border: 0; height: 1px; background-color: #dee2e6; margin: 25px 0; }
+         #plot-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255, 220, 220, 0.9); color: #8b0000; padding: 15px; border: 1px solid #8b0000; border-radius: 5px; text-align: center; z-index: 10; display: none; }
+         /* Styling for klikkbare formler */
+         .formula-choice {
+             cursor: pointer;
+             display: inline-block; /* For padding/border */
+             padding: 5px 8px;
+             border-radius: 5px;
+             border: 1px solid transparent; /* Plassholder for border */
+             transition: background-color 0.2s ease;
+         }
+         .formula-choice:hover {
+             background-color: #f0f0f0; /* Lys grå ved hover */
+         }
+         .formula-choice.active {
+             background-color: #e0e8f0; /* Lys blå for aktiv */
+             border: 1px solid #c0d0e0;
+         }
+         #factorization-explanation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fffadf; /* Lys gul bakgrunn */
+            border: 1px dashed #fadc71;
+            border-radius: 5px;
+            font-size: 0.95em;
+            color: #555;
+         }
+         /* Fargevariabler (brukes i JS) */
+         :root { --color-radius: #FF0000; --color-height: #0000FF; }
+    </style>
+</head>
+<body>
+
+    <h1>Utforsk Sylinderen - Velg Formel</h1>
+
+    <div class="main-container">
+
+        <div class="controls">
+            <h2>1. Definer Dimensjoner</h2>
+            <div>
+                <label class="unit-label" for="unit-selector">Velg enhet:</label>
+                <select id="unit-selector">
+                    <option value="cm">Centimeter (cm)</option>
+                    <option value="dm">Desimeter (dm)</option>
+                    <option value="m">Meter (m)</option>
+                </select>
+            </div>
+            <hr>
+            <div class="slider-container">
+                <label for="radius-cyl">Radius (r):</label>
+                <input type="range" id="radius-cyl" min="0.1" max="10" value="2.0" step="0.1">
+                <span id="radius-cyl-val" class="value-display">2.0</span>
+            </div>
+            <div class="slider-container">
+                <label for="height-cyl">Høyde (h):</label>
+                 <input type="range" id="height-cyl" min="0.1" max="10" value="5.0" step="0.1">
+                <span id="height-cyl-val" class="value-display">5.0</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <h2>2. Se Formler (klikk for å velge og se forklaring)</h2>
+             <div class="formula-section">
+                 <h3>Volum</h3>
+                 <p>$V = \pi {\color{#FF0000}{r}}^2 {\color{#0000FF}{h}}$</p>
+                 <p class="formula-value" id="sylinder-volum-formel-verdi">Laster...</p>
+             </div>
+              <div class="formula-section">
+                 <h3>Overflate</h3>
+                 <p>
+                    <span id="formula-expanded-symbolic" class="formula-choice active">
+                        $A = \underbrace{2 \pi {\color{#FF0000}{r}}^2}_{\text{Topp + Bunn}} + \underbrace{2 \pi {\color{#FF0000}{r}}{\color{#0000FF}{h}}}_{\text{Sideflate}}$
+                    </span>
+                 </p>
+                 <p style="text-align: center; margin: 5px 0; font-style: italic; color: #666;">eller</p>
+                 <p>
+                    <span id="formula-factored-symbolic" class="formula-choice">
+                        $A = 2 \pi {\color{#FF0000}{r}} ({\color{#FF0000}{r}} + {\color{#0000FF}{h}})$
+                    </span>
+                 </p>
+                 <div id="factorization-explanation" style="display: none;">
+                     Her ser du hvordan vi kan faktorisere formelen. Begge leddene ($2\pi r^2$ og $2\pi rh$) inneholder felles faktorer $2$, $\pi$, og $r$. Ved å trekke disse utenfor en parentes, står vi igjen med $(r + h)$ inne i parentesen: $2\pi r(r+h)$. Begge formlene gir samme svar!
+                 </div>
+                 <p class="formula-value" id="sylinder-overflate-formel-verdi">Laster...</p>
+             </div>
+        </div>
+
+         <div class="controls">
+            <h2>3. Generer Figur & Resultat</h2>
+             <button id="generate-button">Generer Sylinder</button>
+        </div>
+
+        <div id="results-container" class="results-container">
+            <h2>4. Endelig Resultat og Visualisering</h2>
+            <div class="results-section">
+                 <p>Beregnet Volum: <span id="sylinder-volum"></span></p>
+                 <p>Beregnet Overflate: <span id="sylinder-overflate"></span></p>
+            </div>
+             <div class="plot-section">
+                <div id="plotDiv">
+                     <div id="plot-message"></div>
+                     </div>
+            </div>
+        </div>
+
+    </div> <script>
+        // --- Få tak i HTML-elementer ---
+        const plotDiv = document.getElementById('plotDiv'); const plotMessage = document.getElementById('plot-message'); const unitSelector = document.getElementById('unit-selector'); const radiusSlider = document.getElementById('radius-cyl'); const heightSlider = document.getElementById('height-cyl'); const radiusValueDisplay = document.getElementById('radius-cyl-val'); const heightValueDisplay = document.getElementById('height-cyl-val'); const generateButton = document.getElementById('generate-button'); const resultsContainer = document.getElementById('results-container'); const volumeFormulaValue = document.getElementById('sylinder-volum-formel-verdi'); const surfaceFormulaValue = document.getElementById('sylinder-overflate-formel-verdi'); const volumeResultDisplay = document.getElementById('sylinder-volum'); const surfaceResultDisplay = document.getElementById('sylinder-overflate');
+        // Nye elementer for formelvalg
+        const formulaExpandedSymbolic = document.getElementById('formula-expanded-symbolic');
+        const formulaFactoredSymbolic = document.getElementById('formula-factored-symbolic');
+        const factorizationExplanation = document.getElementById('factorization-explanation');
+
+        // Fargekoder og aktiv formel
+        const colors = { radius: '#FF0000', height: '#0000FF' };
+        let activeSurfaceFormula = 'expanded'; // Start med ekspandert
+
+        // --- Hjelpefunksjoner (som før) ---
+        function showPlotMessage(message = "", show = false) { if (show && message) { plotMessage.textContent = message; plotMessage.style.display = 'block'; } else { plotMessage.style.display = 'none'; } }
+        function initializeValueDisplayColors() { radiusValueDisplay.style.color = colors.radius; heightValueDisplay.style.color = colors.height; }
+
+        // --- Beregningsfunksjon (som før)---
+        function beregnSylinder(r, h) { if (r <= 0 || h <= 0) return { volum: 0, overflate: 0, valid: false }; const volum = Math.PI * r * r * h; const overflate = 2 * Math.PI * r * (r + h); return { volum, overflate, valid: true }; }
+
+        // --- Plottefunksjoner (som før) ---
+        function lagSylinderFigur(r, h) { if (r <= 0 || h <= 0) { Plotly.purge(plotDiv); showPlotMessage("Radius og høyde må være positive."); return; } showPlotMessage(); const N = 50; const theta = Array.from({ length: N + 1 }, (_, i) => (2 * Math.PI * i) / N); const x_circle = theta.map(t => r * Math.cos(t)); const y_circle = theta.map(t => r * Math.sin(t)); const x = [...x_circle, ...x_circle, 0, 0]; const y = [...y_circle, ...y_circle, 0, 0]; const z = [...Array(N + 1).fill(0), ...Array(N + 1).fill(h), 0, h]; const i_tris = [], j_tris = [], k_tris = []; const base_center_idx = 2 * (N + 1); const top_center_idx = base_center_idx + 1; for (let i = 0; i < N; i++) { i_tris.push(base_center_idx); j_tris.push(i); k_tris.push(i + 1); i_tris.push(top_center_idx); j_tris.push(i + N + 1); k_tris.push(i + N + 2); i_tris.push(i); j_tris.push(i + 1); k_tris.push(i + N + 1); i_tris.push(i + 1); j_tris.push(i + N + 2); k_tris.push(i + N + 1); } const data = [{ type: 'mesh3d', x: x, y: y, z: z, i: i_tris, j: j_tris, k: k_tris, opacity: 0.95, color: 'rgb(0, 128, 128)', flatshading: true, name: 'Sylinder' }]; plotObject(data, Math.max(r * 2, h)); }
+        function plotObject(data, sizeHint) { const axisLimit = Math.max(1, sizeHint) * 1.3; const layout = { margin: { l: 10, r: 10, b: 10, t: 10 }, scene: { xaxis: { range: [-axisLimit, axisLimit], title: 'X', backgroundcolor: "rgb(230, 230,230)", zerolinecolor: 'rgb(150,150,150)' }, yaxis: { range: [-axisLimit, axisLimit], title: 'Y', backgroundcolor: "rgb(230, 230,230)", zerolinecolor: 'rgb(150,150,150)' }, zaxis: { range: [0, axisLimit], title: 'Z', backgroundcolor: "rgb(230, 230,230)", zerolinecolor: 'rgb(150,150,150)' }, aspectratio: { x: 1, y: 1, z: 1 }, camera: { eye: { x: 1.6, y: 1.6, z: 0.8 } }, lighting: { ambient: 0.6, diffuse: 0.6, specular: 0.1, roughness: 0.8, fresnel: 0.2 }, lightposition: {x: 100, y: 200, z: 2000} }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }; Plotly.react(plotDiv, data, layout); }
+
+        // --- Live Update Funksjon ---
+        function updateLiveFormulas() {
+            const r = parseFloat(radiusSlider.value);
+            const h = parseFloat(heightSlider.value);
+            const unit = unitSelector.value;
+            const unit_area = unit + '²';
+            const unit_vol = unit + '³';
+
+            radiusValueDisplay.textContent = r.toFixed(1);
+            heightValueDisplay.textContent = h.toFixed(1);
+
+            const calc = beregnSylinder(r, h);
+            let elementsToTypeset = [volumeFormulaValue, surfaceFormulaValue]; // Alltid disse to
+
+            if (r > 0 && h > 0) {
+                // Oppdater volum formel med verdi
+                volumeFormulaValue.innerHTML = `$V = \\pi ({\\color{${colors.radius}}{${r.toFixed(1)}}})^2 ({\\color{${colors.height}}{${h.toFixed(1)}}}) \\approx ${calc.volum.toFixed(2)}\\text{ ${unit_vol}}$`;
+
+                // Oppdater overflate formel med verdi BASERT PÅ VALG
+                if (activeSurfaceFormula === 'expanded') {
+                    surfaceFormulaValue.innerHTML = `$A = 2 \\pi ({\\color{${colors.radius}}{${r.toFixed(1)}}})^2 + 2 \\pi ({\\color{${colors.radius}}{${r.toFixed(1)}}})({\\color{${colors.height}}{${h.toFixed(1)}}}) \\approx ${calc.overflate.toFixed(2)}\\text{ ${unit_area}}$`;
+                } else { // 'factored'
+                     surfaceFormulaValue.innerHTML = `$A = 2 \\pi {\\color{${colors.radius}}{${r.toFixed(1)}}} ({\\color{${colors.radius}}{${r.toFixed(1)}}} + {\\color{${colors.height}}{${h.toFixed(1)}}}) \\approx ${calc.overflate.toFixed(2)}\\text{ ${unit_area}}$`;
+                }
+
+            } else {
+                 volumeFormulaValue.innerHTML = `(Venter på gyldig r > 0 og h > 0)`;
+                 surfaceFormulaValue.innerHTML = `(Venter på gyldig r > 0 og h > 0)`;
+            }
+
+            // Typeset MathJax
+             if (window.MathJax && window.MathJax.typesetPromise) {
+                 MathJax.typesetPromise(elementsToTypeset).catch((err) => console.log('MathJax Typesetting error:', err));
+             }
+        }
+
+        // --- Håndterer klikk på formelvalg ---
+         function handleFormulaChoiceClick(chosenFormula) {
+             // Oppdater aktiv formel
+             activeSurfaceFormula = chosenFormula;
+
+             // Oppdater visuell markering
+             if (chosenFormula === 'expanded') {
+                 formulaExpandedSymbolic.classList.add('active');
+                 formulaFactoredSymbolic.classList.remove('active');
+             } else {
+                 formulaExpandedSymbolic.classList.remove('active');
+                 formulaFactoredSymbolic.classList.add('active');
+             }
+
+             // Vis/skjul forklaring (vis den alltid ved klikk)
+             factorizationExplanation.style.display = 'block';
+
+             // Oppdater formelen med innsatte verdier umiddelbart
+             updateLiveFormulas();
+         }
+
+
+        // --- Håndterer Generate Knapp Klikk ---
+        function handleGenerateClick() {
+            // ... (samme som før) ...
+            const r = parseFloat(radiusSlider.value); const h = parseFloat(heightSlider.value); const unit = unitSelector.value; const unit_area = unit + '²'; const unit_vol = unit + '³'; const calc = beregnSylinder(r, h);
+            if (calc.valid) {
+                volumeResultDisplay.textContent = calc.volum.toFixed(2) + ' ' + unit_vol; surfaceResultDisplay.textContent = calc.overflate.toFixed(2) + ' ' + unit_area; lagSylinderFigur(r, h); showPlotMessage(); resultsContainer.style.display = 'flex';
+            } else {
+                volumeResultDisplay.textContent = "-"; surfaceResultDisplay.textContent = "-"; Plotly.purge(plotDiv); showPlotMessage("Kan ikke generere figur: Radius og høyde må være positive tall."); resultsContainer.style.display = 'flex';
+            }
+        }
+
+        // --- Initialisering ---
+        function initializeUI() {
+            initializeValueDisplayColors();
+
+            // Listeners for sliders og unit (kaller live update)
+            radiusSlider.addEventListener('input', updateLiveFormulas);
+            heightSlider.addEventListener('input', updateLiveFormulas);
+            unitSelector.addEventListener('change', updateLiveFormulas);
+
+            // Listeners for formelvalg (oppdaterer aktiv formel og live view)
+            formulaExpandedSymbolic.addEventListener('click', () => handleFormulaChoiceClick('expanded'));
+            formulaFactoredSymbolic.addEventListener('click', () => handleFormulaChoiceClick('factored'));
+
+            // Listener for generer-knapp
+            generateButton.addEventListener('click', handleGenerateClick);
+
+            // Skjul resultater og forklaring initialt
+            resultsContainer.style.display = 'none';
+            factorizationExplanation.style.display = 'none';
+
+            // Sett initial aktiv formel visuelt
+            formulaExpandedSymbolic.classList.add('active'); // Start med ekspandert som aktiv
+
+            // Kjør første typesetting og oppdatering av live formler
+            if (window.MathJax && window.MathJax.startup && MathJax.startup.promise) {
+                 MathJax.startup.promise.then(() => {
+                     console.log("MathJax Ready, initializing UI.");
+                     MathJax.typesetPromise().then(() => {
+                         updateLiveFormulas(); // Kjør første oppdatering av dynamiske formler
+                         console.log("Initial dynamic formula update done.");
+                     }).catch((err)=>console.log('Static MathJax Typesetting error:', err));
+                 });
+             } else {
+                 console.warn("MathJax not ready or promise not available, running UI initialization anyway.");
+                 updateLiveFormulas();
+             }
+        }
+
+        // Kjør initialisering
+        initializeUI();
+
+    </script>
+
+</body>
+</html>
